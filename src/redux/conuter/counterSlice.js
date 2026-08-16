@@ -7,10 +7,12 @@ const counterSlice = createSlice({
   },
   reducers: {
     addCounter: (state) => {
-      state.timer += 1;
+      state.timer = 7;
     },
     minusCounter: (state) => {
-      state.timer -= 1;
+      if (state.timer > 0) {
+        state.timer -= 1;
+      }
     },
   },
 });
