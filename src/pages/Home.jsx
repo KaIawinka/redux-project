@@ -8,7 +8,6 @@ function Home() {
 
   return (
     <div>
-      Home
       <h1>{timer}</h1>
       <button onClick={() => dispatch(addCounter())}>add</button>
       <button onClick={() => dispatch(minusCounter())}>minus</button>

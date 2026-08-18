@@ -3,11 +3,11 @@ import { createSlice } from "@reduxjs/toolkit";
 const counterSlice = createSlice({
   name: "counter",
   initialState: {
-    timer: 3,
+    timer: 0,
   },
   reducers: {
     addCounter: (state) => {
-      state.timer = 7;
+      state.timer = state.timer + 1;
     },
     minusCounter: (state) => {
       if (state.timer > 0) {
