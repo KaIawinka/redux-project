@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:ital,wght@0,100..900;1,100..900&display=swap');
+
+* {
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+header {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: black;
+	height: 50px;
+	font-family: "MuseoModerno", sans-serif;
+	font-size: 24px;
+	position: sticky;
+	flex-direction: row;
+	gap: 20px;
+}
+
+header a {
+	position: relative;
+	color: white;
+	text-decoration: none;
+	transition: 0.3s;
+	padding-bottom: 4px;
+}
+
+header a:hover {
+	transform: scale(1.1);
+}
+
+header a::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: 4px;
+	width: 100%;
+	height: 2px;
+	background-color: white;
+	transform: scaleX(0);
+	transform-origin: center;
+	opacity: 0;
+	transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+header a.active::after {
+	transform: scaleX(1);
+	opacity: 1;
+}

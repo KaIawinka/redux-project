@@ -1,17 +1,20 @@
 import React from 'react'
-import Footer from '../Footer'
-import Header from '../Header'
-import { Outlet } from 'react-router-dom'
-import axios from 'axios'
+import Header from '../Header/Header'
+import Footer from '../Footer/Footer'
+import { Outlet } from 'react-router'
 
 function Layout() {
-  return (
-    <>
-        <Header />
-        <Outlet />
-        <Footer />
-    </>
-  )
+	return (
+		<>
+			<main id='main'>
+				<Header />
+					<main id='second-main'>
+							<Outlet />
+					</main>
+				<Footer />
+			</main>
+		</>
+	)
 }
 
 export default Layout
