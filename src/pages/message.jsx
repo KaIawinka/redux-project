@@ -4,17 +4,82 @@ import { useEffect, useState } from "react";
 const API_BASE_URL = "https://pizza-api-pj4j.onrender.com";
 const API_URL = `${API_BASE_URL}/api/v1/pizzas`;
 
-const GENERATED_PRODUCTS = [
-  { title: "Пепперони", description: "Пикантная пепперони и моцарелла", price: 590, isMeat: true, isSpicy: true, hasMozzarella: true },
-  { title: "Четыре сыра", description: "Моцарелла, сырный соус и нежный сливочный вкус", price: 690, hasCheeseSauce: true, hasMozzarella: true },
-  { title: "Вегетарианская", description: "Томаты, овощи и моцарелла", price: 520, isVegetarian: true, hasMozzarella: true, hasTomatoes: true },
-  { title: "Барбекю с курицей", description: "Курица, томаты и соус барбекю", price: 640, isChicken: true, hasTomatoes: true, isNew: true },
-  { title: "Острая мексиканская", description: "Острый соус, курица и томаты", price: 720, isSpicy: true, isChicken: true, hasTomatoes: true },
+const PRODUCT_NAMES = [
+  "Пепперони Фреш", "Четыре сыра", "Вегетарианская", "Барбекю с курицей",
+  "Острая мексиканская", "Грибная с чесноком", "Томатная буррата", "Цыплёнок ранч",
+  "Гавайская", "Мясной пир", "Средиземноморская", "Сырный цыплёнок",
+  "Овощная гриль", "Охотничья", "Сладкая карамель", "Пикантная салями",
+  "Деревенская", "Моцарелла и томаты", "Курица терияки", "Острая колбаска",
 ];
 
-function createGeneratedImage(title) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="#fff0e6"/><circle cx="300" cy="300" r="210" fill="#f4b183"/><circle cx="300" cy="300" r="175" fill="#e85d04"/><circle cx="220" cy="240" r="22" fill="#fff3b0"/><circle cx="370" cy="270" r="22" fill="#fff3b0"/><circle cx="280" cy="380" r="22" fill="#fff3b0"/><text x="300" y="550" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#5c2b13">${title}</text></svg>`;
-  return new File([svg], `${title}.svg`, { type: "image/svg+xml" });
+const PRODUCT_DESCRIPTIONS = [
+  "Нежная моцарелла, свежие томаты и ароматный соус",
+  "Сочная начинка, хрустящая корочка и много сыра",
+  "Пикантные специи, запечённые овощи и фирменный соус",
+  "Курица, душистые травы и румяная сырная корочка",
+  "Сбалансированный вкус для большой компании",
+];
+
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function createGeneratedProduct(name) {
+  const isChicken = Math.random() > 0.58;
+  const isSpicy = Math.random() > 0.62;
+  const isVegetarian = !isChicken && Math.random() > 0.45;
+
+  return {
+    title: name,
+    description: randomItem(PRODUCT_DESCRIPTIONS),
+    price: 450 + Math.floor(Math.random() * 10) * 50,
+    doughType: Math.random() > 0.35 ? "traditional" : "thin",
+    canCustomise: Math.random() > 0.7,
+    isNew: Math.random() > 0.65,
+    isMeat: !isVegetarian && !isChicken && Math.random() > 0.35,
+    isSpicy,
+    isSweet: Math.random() > 0.9,
+    isVegetarian,
+    isChicken,
+    hasCheeseSauce: Math.random() > 0.55,
+    hasMozzarella: true,
+    hasGarlic: Math.random() > 0.55,
+    hasPickles: Math.random() > 0.75,
+    hasRedOnion: Math.random() > 0.6,
+    hasTomatoes: Math.random() > 0.4,
+  };
+}
+
+async function getBlobHash(blob) {
+  const buffer = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function downloadUniquePizzaImage(title, usedHashes) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const lock = Math.floor(Math.random() * 1000000000) + attempt;
+    const url = `https://loremflickr.com/800/800/pizza?lock=${lock}`;
+    const response = await axios.get(url, { responseType: "blob" });
+    const hash = await getBlobHash(response.data);
+
+    if (!usedHashes.has(hash)) {
+      return {
+        file: new File([response.data], `${title}.jpg`, { type: "image/jpeg" }),
+        hash,
+      };
+    }
+  }
+
+  throw new Error("Не удалось найти уникальное изображение");
+}
+
+function createGeneratedProducts(count) {
+  const names = [...PRODUCT_NAMES].sort(() => Math.random() - 0.5).slice(0, count);
+  return names.map((name, index) => ({
+    ...createGeneratedProduct(name),
+    imageUrl: `https://loremflickr.com/800/800/pizza?lock=${Date.now() + index}`,
+  }));
 }
 
 function Panel() {
@@ -55,7 +120,11 @@ function Panel() {
   };
 
   useEffect(() => {
-    void fetchProducts();
+    const request = Promise.resolve().then(fetchProducts);
+
+    return () => {
+      void request;
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -82,6 +151,38 @@ function Panel() {
     } catch (error) {
       console.error("Ошибка при удалении:", error);
       setMessage("Не удалось удалить товар");
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (products.length === 0) {
+      setMessage("В каталоге нет товаров для удаления");
+      return;
+    }
+
+    if (!window.confirm(`Удалить все товары (${products.length})?`)) return;
+
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      const results = await Promise.allSettled(
+        products.map((product) => axios.delete(`${API_URL}/${product.id}`))
+      );
+      const deletedCount = results.filter((result) => result.status === "fulfilled").length;
+      const failedCount = results.length - deletedCount;
+
+      await fetchProducts();
+      setMessage(
+        failedCount === 0
+          ? `Удалено товаров: ${deletedCount}`
+          : `Удалено товаров: ${deletedCount}. Не удалось удалить: ${failedCount}`
+      );
+    } catch (error) {
+      console.error("Ошибка массового удаления:", error);
+      setMessage("Не удалось удалить товары");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,18 +236,44 @@ function Panel() {
     setIsLoading(true);
 
     try {
-      for (const product of GENERATED_PRODUCTS) {
+      const generatedProducts = createGeneratedProducts(12);
+      const savedHashes = JSON.parse(localStorage.getItem("generatedPizzaImageHashes") || "[]");
+      const usedHashes = new Set(savedHashes);
+      let createdCount = 0;
+      let failedCount = 0;
+
+      await Promise.allSettled(products.map(async (product) => {
+        if (!product.imageUrl) return;
+        const response = await axios.get(getImageUrl(product.imageUrl), { responseType: "blob" });
+        usedHashes.add(await getBlobHash(response.data));
+      }));
+
+      for (const product of generatedProducts) {
+        try {
         const formData = new FormData();
         const productData = { ...initialFormState, ...product };
+
+        delete productData.imageUrl;
 
         Object.keys(productData).forEach((key) => {
           formData.append(key, productData[key]);
         });
-        formData.append("image", createGeneratedImage(product.title));
+        const image = await downloadUniquePizzaImage(product.title, usedHashes);
+        formData.append("image", image.file);
         await axios.post(API_URL, formData);
+        usedHashes.add(image.hash);
+        createdCount += 1;
+        } catch (error) {
+          failedCount += 1;
+          console.error(`Ошибка добавления ${product.title}:`, error);
+        }
       }
 
-      setMessage(`Автоматически добавлено товаров: ${GENERATED_PRODUCTS.length}`);
+      localStorage.setItem("generatedPizzaImageHashes", JSON.stringify([...usedHashes]));
+
+      setMessage(failedCount === 0
+        ? `Автоматически добавлено товаров: ${createdCount}`
+        : `Добавлено товаров: ${createdCount}. Не удалось: ${failedCount}`);
       await fetchProducts();
     } catch (error) {
       console.error("Ошибка автогенерации:", error);
@@ -254,6 +381,10 @@ function Panel() {
         {isLoading ? "Генерация..." : "Сгенерировать товары"}
       </button>
 
+      <button type="button" disabled={isLoading || products.length === 0} onClick={handleDeleteAll} style={styles.deleteAllBtn}>
+        {isLoading ? "Удаление..." : "Удалить все товары"}
+      </button>
+
       <hr style={{ margin: "40px 0" }} />
 
       <h2>Каталог товаров</h2>
@@ -325,6 +456,17 @@ const styles = {
     backgroundColor: "#fff0e6",
     color: "#d94f00",
     border: "1px solid #ff6900",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+  deleteAllBtn: {
+    marginTop: "12px",
+    marginLeft: "8px",
+    padding: "12px 18px",
+    backgroundColor: "#fff1f1",
+    color: "#d9363e",
+    border: "1px solid #ff4d4f",
     borderRadius: "8px",
     fontWeight: "bold",
     cursor: "pointer",

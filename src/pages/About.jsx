@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { addTodo } from '../redux/Todo/TodoSlice'
 import '../styles/About.css'

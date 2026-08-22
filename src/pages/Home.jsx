@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { addCounter, minusCounter } from '../redux/Counter/counterSlice'
 
